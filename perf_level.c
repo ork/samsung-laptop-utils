@@ -40,18 +40,28 @@
 #define PERF_SILENT "silent"
 #define PERF_NORMAL "normal"
 
-void do_notify(gchar* power_mode)
+gboolean do_notify(gchar* power_mode)
 {
-    gchar notify_body[256];
-    NotifyNotification* n;
-
-    g_sprintf(notify_body, _("Now using power mode %s."), power_mode);
-
+    gchar* body = NULL;
+    NotifyNotification* notif = NULL;
     notify_init("perf_level");
-    n = notify_notification_new(_("Performance level"), notify_body, "battery");
-    notify_notification_show(n, NULL);
-    g_object_unref(G_OBJECT(n));
+
+    body = g_strdup_printf (_("Now using power mode %s."), power_mode);
+    if (!body)
+        return FALSE;
+
+    notif = notify_notification_new(_("Performance level"), body, "battery");
+    if (!notif)
+        return FALSE;
+
+    if (!notify_notification_show(notif, NULL))
+        return FALSE;
+
+    g_object_unref(G_OBJECT(notif));
     notify_uninit();
+    g_free(body);
+
+    return TRUE;
 }
 
 int main()
