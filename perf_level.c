@@ -23,30 +23,27 @@
 #include <fcntl.h>
 #include <libnotify/notify.h>
 
-// Helper macros
+// Helper macro
 
-#define g_streq(s1, s2) (g_strcmp0((s1), (s2)) == 0)
-#define s_write(fd, CONSTANT) do {         \
-    int o_uid = getuid();                  \
-    setuid(0);                             \
-    write(fd, CONSTANT, sizeof(CONSTANT)); \
-    setuid(o_uid);                         \
-} while (0)
+#define s_write(fd, CONSTANT)                  \
+    do {                                       \
+        int o_uid = getuid();                  \
+        setuid(0);                             \
+        write(fd, CONSTANT, sizeof(CONSTANT)); \
+        setuid(o_uid);                         \
+    } while (0)
 
 // Settings
 
 #define SYSTEM_FILE "/sys/devices/platform/samsung/performance_level"
 
-#define PERF_SILENT "silent"
-#define PERF_NORMAL "normal"
-
-gboolean do_notify(gchar* power_mode)
+gboolean do_notify(const gchar* power_mode)
 {
     gchar* body = NULL;
     NotifyNotification* notif = NULL;
     notify_init("perf_level");
 
-    body = g_strdup_printf (_("Now using power mode %s."), power_mode);
+    body = g_strdup_printf(_("Now using power mode %s."), power_mode);
     if (!body)
         return FALSE;
 
@@ -67,9 +64,15 @@ gboolean do_notify(gchar* power_mode)
 int main()
 {
     gchar buf[256];
-    gchar *contents = NULL;
+    gchar* contents = NULL;
     GError* error = NULL;
     int fd;
+
+    static const gchar* modes[] = {
+        "silent",
+        "normal",
+        0
+    };
 
     setlocale(LC_ALL, "");
     bindtextdomain("samsung-control-laptop", "/usr/share/locale");
@@ -84,21 +87,23 @@ int main()
     read(fd, &buf, sizeof(buf));
     contents = g_strstrip(buf); // Remove trailing carriage return
 
-    if (g_streq(contents, PERF_SILENT)) {
-        s_write(fd, PERF_NORMAL);
-        do_notify(PERF_NORMAL);
-    } else if (g_streq(contents, PERF_NORMAL)) {
-        s_write(fd, PERF_SILENT);
-        do_notify(PERF_SILENT);
-    } else {
-        g_printerr(_("Unknown value '%s', aborting.\n"), contents);
+    // Loop over power level names
+    for (int i = 0; modes[i] != '\0'; ++i) {
+        if (g_strcmp0(contents, modes[i]) == 0) {
+            if (modes[i + 1] == '\0') {
+                s_write(fd, modes[0]);
+                do_notify(modes[0]);
+            } else {
+                s_write(fd, modes[i + 1]);
+                do_notify(modes[i + 1]);
+            }
+        }
     }
 
-    cleanup:
+cleanup:
     if (!g_close(fd, &error)) {
         g_printerr("%s.\n", error->message);
     }
 
     return 0;
 }
-
