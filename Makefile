@@ -11,7 +11,10 @@ all: $(BINARIES)
 ${BINARIES}: ${SOURCES}
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
 
-.PHONY: clean mrproper
+.PHONY: clean install
 
 clean:
 	rm -rf $(BINARIES)
+
+install: ${BINARIES}
+	install -m 4755 -o root $< /usr/local/bin

@@ -16,6 +16,5 @@ Usage
 
     make
 
-Don't forget to run `chown root $BIN ; chmod u+s $BIN` after building,
-as `setuid(3)` is needed for privileged operations.
-
+Run `make install` to install into `/usr/local/bin` using the right
+permissions (suid).
